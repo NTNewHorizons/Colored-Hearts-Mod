@@ -4,266 +4,270 @@ import static net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType
 
 import java.util.Random;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.entity.SharedMonsterAttributes;
-import net.minecraft.entity.ai.attributes.IAttributeInstance;
-import net.minecraft.potion.Potion;
-import net.minecraft.util.MathHelper;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.GuiIngameForge;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.common.MinecraftForge;
-
-import org.lwjgl.opengl.GL11;
+import com.hbm.items.armor.ArmorHEV;
 
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
-/*
- * TODO: Fix regeneration effect
- */
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.IAttributeInstance;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.potion.Potion;
+import net.minecraft.util.MathHelper;
+import net.minecraft.util.ResourceLocation;
+
+import net.minecraftforge.client.GuiIngameForge;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.common.MinecraftForge;
+
+import org.lwjgl.opengl.GL11;
 
 public class HealthBarRenderer extends Gui {
 
-    private static final boolean isRpghudLoaded = Loader.isModLoaded("rpghud");
-    private static final boolean isTukmc_vzLoaded = Loader.isModLoaded("tukmc_Vz");
-    private static final boolean isBorderlandsModLoaded = Loader.isModLoaded("borderlands");
-    private static final ResourceLocation TINKER_HEARTS = new ResourceLocation(
-        "colorhearts",
-        "textures/gui/newhearts.png");
+    // -------------------------------------------------------------------------
+    // Mod compatibility flags
+    // -------------------------------------------------------------------------
+    private static final boolean isRpghudLoaded      = Loader.isModLoaded("rpghud");
+    private static final boolean isTukmc_vzLoaded    = Loader.isModLoaded("tukmc_Vz");
+    private static final boolean isBorderlandsLoaded = Loader.isModLoaded("borderlands");
+    private static final boolean isHbmLoaded         = Loader.isModLoaded("hbm");
+
+    // -------------------------------------------------------------------------
+    // Resources
+    // -------------------------------------------------------------------------
+    private static final ResourceLocation COLORED_HEARTS =
+            new ResourceLocation("colorhearts", "textures/gui/newhearts.png");
+
     private static final Minecraft mc = Minecraft.getMinecraft();
+
+    // -------------------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------------------
     private final Random rand = new Random();
     private int updateCounter = 0;
 
+    // =========================================================================
+    // Tick handler — keeps updateCounter in sync with game ticks
+    // =========================================================================
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.START && !mc.isGamePaused()) {
-            this.updateCounter++;
+            updateCounter++;
         }
     }
 
+    // =========================================================================
+    // Compatibility helpers
+    // =========================================================================
+
+    /** Returns true when the player is wearing any HEV chestplate (HBM). */
+    private boolean isWearingHEVArmor(EntityPlayer player) {
+        try {
+            ItemStack chest = player.inventory.armorInventory[2];
+            return chest != null && chest.getItem() instanceof ArmorHEV;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // Main overlay renderer
+    // =========================================================================
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void renderHealthbar(RenderGameOverlayEvent.Pre event) {
-        if (event.type != HEALTH) {
-            return;
-        }
+        if (event.type != HEALTH) return;
 
-        if (isRpghudLoaded) {
-            return;
-        }
+        // --- Mod compatibility bailouts ---
+        if (isRpghudLoaded) return;
+        if (isTukmc_vzLoaded && !isBorderlandsLoaded) return;
 
-        if (isTukmc_vzLoaded && !isBorderlandsModLoaded) {
-            return;
-        }
+        // Let HBM's HEV suit render its own overlay — do NOT cancel the event
+        if (isHbmLoaded && isWearingHEVArmor(mc.thePlayer)) return;
 
+        // --- Setup ---
         mc.mcProfiler.startSection("health");
         GL11.glEnable(GL11.GL_BLEND);
 
         final int width = event.resolution.getScaledWidth();
         final int height = event.resolution.getScaledHeight();
-        final int xBasePos = width / 2 - 91;
-        int yBasePos = height - 39;
+        final int xBase = width / 2 - 91;
+        int yBase = height - 39;
 
+        // Damage-highlight blink
         boolean highlight = mc.thePlayer.hurtResistantTime / 3 % 2 == 1;
+        if (mc.thePlayer.hurtResistantTime < 10) highlight = false;
 
-        if (mc.thePlayer.hurtResistantTime < 10) {
-            highlight = false;
-        }
-
-        final IAttributeInstance attrMaxHealth = mc.thePlayer.getEntityAttribute(SharedMonsterAttributes.maxHealth);
-        final int health = MathHelper.ceiling_float_int(mc.thePlayer.getHealth());
+        // Health values
+        final IAttributeInstance attrMax = mc.thePlayer.getEntityAttribute(
+                SharedMonsterAttributes.maxHealth);
+        final int health     = MathHelper.ceiling_float_int(mc.thePlayer.getHealth());
         final int healthLast = MathHelper.ceiling_float_int(mc.thePlayer.prevHealth);
-        final float healthMax = Math.min(20F, (float) attrMaxHealth.getAttributeValue());
+        final float healthMax = Math.min(20F, (float) attrMax.getAttributeValue());
         float absorb = mc.thePlayer.getAbsorptionAmount();
 
+        // Row layout
         final int healthRows = MathHelper.ceiling_float_int((healthMax + absorb) / 2.0F / 10.0F);
-        final int rowHeight = Math.max(10 - (healthRows - 2), 3);
+        final int rowHeight  = Math.max(10 - (healthRows - 2), 3);
 
-        this.rand.setSeed(updateCounter * 312871L);
+        rand.setSeed(updateCounter * 312871L);
 
-        int left = width / 2 - 91;
-        int top = height - GuiIngameForge.left_height;
-
+        int left = xBase;
+        int top  = height - GuiIngameForge.left_height;
         if (!GuiIngameForge.renderExperiance) {
-            top += 7;
-            yBasePos += 7;
+            top   += 7;
+            yBase += 7;
         }
 
-        // Regeneration bounce effect
-        float bounceOffset = 0.0F;
+        // -----------------------------------------------------------------------
+        // Regeneration bounce — vanilla / TConstruct style:
+        // one heart index bounces per tick, cycling through 0-9.
+        // -----------------------------------------------------------------------
+        int regenBounceIndex = -1;
         if (mc.thePlayer.isPotionActive(Potion.regeneration)) {
-            // Use a sine wave for smooth bouncing, synced with regeneration ticks (e.g., 50 ticks at level 1)
-            float regenFrequency = 0.1F; // Adjust for speed (lower = slower)
-            bounceOffset = (float) Math.sin(updateCounter * regenFrequency) * 2.0F; // -2 to 2 pixel range
+            regenBounceIndex = updateCounter % 10;
         }
 
-        final int TOP;
-        int tinkerTextureY = 0;
-        if (mc.theWorld.getWorldInfo()
-            .isHardcoreModeEnabled()) {
-            TOP = 9 * 5;
-            tinkerTextureY += 27;
-        } else {
-            TOP = 0;
-        }
-        final int BACKGROUND = (highlight ? 25 : 16);
+        // Texture offsets
+        final boolean hardcore = mc.theWorld.getWorldInfo().isHardcoreModeEnabled();
+        final int TOP        = hardcore ? 9 * 5 : 0;
+        final int tinkerBase = hardcore ? 27    : 0;
+        final int BACKGROUND = highlight ? 25 : 16;
+
         int MARGIN = 16;
+        int coloredHeartsY = tinkerBase;
         if (mc.thePlayer.isPotionActive(Potion.poison)) {
             MARGIN += 36;
-            tinkerTextureY = 9;
+            coloredHeartsY = 9 + tinkerBase;
         } else if (mc.thePlayer.isPotionActive(Potion.wither)) {
             MARGIN += 72;
-            tinkerTextureY = 18;
+            coloredHeartsY = 18 + tinkerBase;
         }
 
-        // Render vanilla hearts
+        // -----------------------------------------------------------------------
+        // Pass 1 — vanilla heart icons (background + fill)
+        // -----------------------------------------------------------------------
         for (int i = MathHelper.ceiling_float_int((healthMax + absorb) / 2.0F) - 1; i >= 0; --i) {
-            final int row = MathHelper.ceiling_float_int((float) (i + 1) / 10.0F) - 1;
+            final int row = MathHelper.ceiling_float_int((float)(i + 1) / 10.0F) - 1;
             int x = left + i % 10 * 8;
-            int y = top - row * rowHeight;
+            int y = top  - row * rowHeight;
 
-            // Apply shaking when health is low
-            if (health <= 4) y += rand.nextInt(3) - 1;
+            if (health <= 4)           y += rand.nextInt(3) - 1; // low-health shake
+            if (i == regenBounceIndex) y -= 2;                   // regen bounce
 
-            // Apply regeneration bounce to all hearts
-            if (mc.thePlayer.isPotionActive(Potion.regeneration)) {
-                y += bounceOffset;
-            }
+            // Empty heart outline
+            drawTexturedModalRect(x, y, BACKGROUND, TOP, 9, 9);
 
-            this.drawTexturedModalRect(x, y, BACKGROUND, TOP, 9, 9);
-
+            // Damage-highlight ghost hearts
             if (highlight) {
-                if (i * 2 + 1 < healthLast) {
-                    this.drawTexturedModalRect(x, y, MARGIN + 54, TOP, 9, 9);
-                } else if (i * 2 + 1 == healthLast) {
-                    this.drawTexturedModalRect(x, y, MARGIN + 63, TOP, 9, 9);
-                }
+                if (i * 2 + 1 < healthLast)
+                    drawTexturedModalRect(x, y, MARGIN + 54, TOP, 9, 9);
+                else if (i * 2 + 1 == healthLast)
+                    drawTexturedModalRect(x, y, MARGIN + 63, TOP, 9, 9);
             }
 
+            // Absorption or actual health fill
             if (absorb > 0.0F) {
-                if (absorb % 2.0F == 1.0F) {
-                    this.drawTexturedModalRect(x, y, MARGIN + 153, TOP, 9, 9);
-                } else {
-                    this.drawTexturedModalRect(x, y, MARGIN + 144, TOP, 9, 9);
-                }
+                if (absorb % 2.0F == 1.0F)
+                    drawTexturedModalRect(x, y, MARGIN + 153, TOP, 9, 9); // half absorption
+                else
+                    drawTexturedModalRect(x, y, MARGIN + 144, TOP, 9, 9); // full absorption
                 absorb -= 2.0F;
             } else if (i * 2 + 1 + 20 >= health) {
-                if (i * 2 + 1 < health) {
-                    this.drawTexturedModalRect(x, y, MARGIN + 36, TOP, 9, 9);
-                } else if (i * 2 + 1 == health) {
-                    this.drawTexturedModalRect(x, y, MARGIN + 45, TOP, 9, 9);
-                }
+                if (i * 2 + 1 < health)
+                    drawTexturedModalRect(x, y, MARGIN + 36, TOP, 9, 9);  // full heart
+                else if (i * 2 + 1 == health)
+                    drawTexturedModalRect(x, y, MARGIN + 45, TOP, 9, 9);  // half heart
             }
         }
 
+        // -----------------------------------------------------------------------
+        // Pass 2 — colored extra hearts (health > 20)
+        // -----------------------------------------------------------------------
         if (health > 20) {
-            mc.getTextureManager()
-                .bindTexture(TINKER_HEARTS);
-            for (int i = Math.max(0, health / 20 - 2); i < health / 20; i++) {
-                final int heartIndexMax = Math.min(10, (health - 20 * (i + 1)) / 2);
+            mc.getTextureManager().bindTexture(COLORED_HEARTS);
 
-                int loopStartPoint = 0;
-                int loopEnd = 10;
-                int textureColumn;
+            // Render up to 2 layers at a time to avoid visual clutter
+            for (int layer = Math.max(0, health / 20 - 2); layer < health / 20; layer++) {
+                final int heartsInLayer = Math.min(10, (health - 20 * (layer + 1)) / 2);
+                // Wrap texture column into 0-10 range
+                final int textureCol = layer % 11;
+                // Glow overlay logic for HP between 241-260
+                final int overlayCount = (health > 240 && health <= 260) ? health - 240 : 0;
 
-                if (i <= loopEnd) {
-                    textureColumn = i;
-                } else {
-                    int span = loopEnd - loopStartPoint + 1;
-                    textureColumn = ((i - loopStartPoint) % span) + loopStartPoint;
-                }
-
-                int overlayCount = 0;
-                if (health > 240 && health <= 260) {
-                    overlayCount = health - 240;
-                }
-
-                for (int j = 0; j < heartIndexMax; j++) {
+                for (int j = 0; j < heartsInLayer; j++) {
                     int y = 0;
-                    if (health <= 4) y += rand.nextInt(3) - 1;
-                    if (mc.thePlayer.isPotionActive(Potion.regeneration)) {
-                        y += bounceOffset;
-                    }
-                    if ((i + 1) * 20 + j * 2 + 21 >= health) {
-                        if (health <= 240) {
-                            this.drawTexturedModalRect(
-                                xBasePos + 8 * j,
-                                yBasePos + y,
-                                18 * textureColumn,
-                                tinkerTextureY,
-                                9,
-                                9);
-                        } else {
-                            this.drawTexturedModalRect(xBasePos + 8 * j, yBasePos + y, 18 * 10, tinkerTextureY, 9, 9);
-                            if (health <= 260) {
-                                int fullOverlays = overlayCount / 2;
-                                if (j < fullOverlays) {
-                                    this.drawTexturedModalRect(xBasePos + 8 * j, yBasePos + y, 0, 54, 9, 9);
-                                }
-                            } else {
-                                this.drawTexturedModalRect(
-                                    xBasePos + 8 * j,
-                                    yBasePos + y,
-                                    18 * textureColumn,
-                                    54,
-                                    9,
-                                    9);
-                            }
-                        }
+                    if (health <= 4)           y += rand.nextInt(3) - 1;
+                    if (j == regenBounceIndex) y -= 2;
+
+                    if ((layer + 1) * 20 + j * 2 + 21 >= health) {
+                        drawColoredHeart(xBase + 8 * j, yBase + y,
+                                textureCol, coloredHeartsY,
+                                health, overlayCount, j, false);
                     }
                 }
-                if (health % 2 == 1 && heartIndexMax < 10) {
+
+                // Half-heart remainder
+                if (health % 2 == 1 && heartsInLayer < 10) {
                     int y = 0;
-                    if (health <= 4) y += rand.nextInt(3) - 1;
-                    if (mc.thePlayer.isPotionActive(Potion.regeneration)) {
-                        y += bounceOffset;
-                    }
-                    if (health <= 240) {
-                        this.drawTexturedModalRect(
-                            xBasePos + 8 * heartIndexMax,
-                            yBasePos + y,
-                            9 + 18 * textureColumn,
-                            tinkerTextureY,
-                            9,
-                            9);
-                    } else {
-                        this.drawTexturedModalRect(
-                            xBasePos + 8 * heartIndexMax,
-                            yBasePos + y,
-                            9 + 18 * 10,
-                            tinkerTextureY,
-                            9,
-                            9);
-                        if (health <= 260) {
-                            int fullOverlays = overlayCount / 2;
-                            boolean hasHalfOverlay = (overlayCount % 2) == 1;
-                            if (heartIndexMax == fullOverlays && hasHalfOverlay) {
-                                this.drawTexturedModalRect(xBasePos + 8 * heartIndexMax, yBasePos + y, 9, 54, 9, 9);
-                            }
-                        } else {
-                            this.drawTexturedModalRect(
-                                xBasePos + 8 * heartIndexMax,
-                                yBasePos + y,
-                                9 + 18 * textureColumn,
-                                54,
-                                9,
-                                9);
-                        }
-                    }
+                    if (health <= 4)                        y += rand.nextInt(3) - 1;
+                    if (heartsInLayer == regenBounceIndex)  y -= 2;
+
+                    drawColoredHeart(xBase + 8 * heartsInLayer, yBase + y,
+                            textureCol, coloredHeartsY,
+                            health, overlayCount, heartsInLayer, true);
                 }
             }
-            mc.getTextureManager()
-                .bindTexture(Gui.icons);
+
+            mc.getTextureManager().bindTexture(Gui.icons);
         }
 
+        // -----------------------------------------------------------------------
+        // Finish up
+        // -----------------------------------------------------------------------
         GuiIngameForge.left_height += 10;
-        if (absorb > 0) GuiIngameForge.left_height += 10;
+        if (mc.thePlayer.getAbsorptionAmount() > 0) GuiIngameForge.left_height += 10;
+
         GL11.glDisable(GL11.GL_BLEND);
         mc.mcProfiler.endSection();
+
         event.setCanceled(true);
         MinecraftForge.EVENT_BUS.post(new RenderGameOverlayEvent.Post(event, HEALTH));
+    }
+
+    // =========================================================================
+    // Helper — draws one full or half colored heart, handling the >240 HP glow
+    // =========================================================================
+    private void drawColoredHeart(int x, int y, int textureCol, int textureRow,
+                                   int health, int overlayCount, int heartIndex, boolean half) {
+        final int u = half ? 9 + 18 * textureCol : 18 * textureCol;
+
+        if (health <= 240) {
+            // Normal colored heart
+            drawTexturedModalRect(x, y, u, textureRow, 9, 9);
+        } else {
+            // Overflow base — use last texture column
+            final int overflowU = half ? 9 + 18 * 10 : 18 * 10;
+            drawTexturedModalRect(x, y, overflowU, textureRow, 9, 9);
+
+            if (health <= 260) {
+                // Partial glow overlay
+                final int fullGlows   = overlayCount / 2;
+                final boolean halfGlow = (overlayCount % 2) == 1;
+                if (!half && heartIndex < fullGlows) {
+                    drawTexturedModalRect(x, y, 0, 54, 9, 9);
+                } else if (half && heartIndex == fullGlows && halfGlow) {
+                    drawTexturedModalRect(x, y, 9, 54, 9, 9);
+                }
+            } else {
+                // Full glow overlay
+                final int glowU = half ? 9 + 18 * textureCol : 18 * textureCol;
+                drawTexturedModalRect(x, y, glowU, 54, 9, 9);
+            }
+        }
     }
 }
