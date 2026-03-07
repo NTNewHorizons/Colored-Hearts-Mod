@@ -20,7 +20,7 @@ public class ColoredHearts {
     public static final String MODID = "ColoredHearts";
     public static final Logger LOG = LogManager.getLogger(MODID);
 
-    @SidedProxy(clientSide = "com.ntnh.ColoredHearts.ClientProxy", serverSide = "com.ntnh.ColoredHearts.CommonProxy")
+    @SidedProxy(clientSide = "com.ntnh.coloredhearts.ClientProxy", serverSide = "com.ntnh.coloredhearts.CommonProxy")
     public static CommonProxy proxy;
 
     @Mod.EventHandler
