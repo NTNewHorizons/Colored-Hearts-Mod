@@ -1,4 +1,4 @@
-package com.ntnh.colorhearts;
+package com.ntnh.coloredhearts;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -11,7 +11,7 @@ public class CommonProxy {
     // GameRegistry." (Remove if not needed)
     public void preInit(FMLPreInitializationEvent event) {
         Config.synchronizeConfiguration(event.getSuggestedConfigurationFile());
-        colorhearts.LOG.info("I am Colored Hearts Mod at version " + Tags.VERSION);
+        ColoredHearts.LOG.info("I am Colored Hearts Mod at version " + Tags.VERSION);
     }
 
     // load "Do your mod setup. Build whatever data structures you care about. Register recipes." (Remove if not needed)

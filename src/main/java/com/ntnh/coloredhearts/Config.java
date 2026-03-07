@@ -1,4 +1,4 @@
-package com.ntnh.colorhearts;
+package com.ntnh.coloredhearts;
 
 import java.io.File;
 

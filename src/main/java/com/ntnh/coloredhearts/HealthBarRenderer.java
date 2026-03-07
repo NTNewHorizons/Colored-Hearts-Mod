@@ -1,4 +1,4 @@
-package com.ntnh.colorhearts;
+package com.ntnh.coloredhearts;
 
 import static net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType.HEALTH;
 
@@ -41,7 +41,7 @@ public class HealthBarRenderer extends Gui {
     // Resources
     // -------------------------------------------------------------------------
     private static final ResourceLocation COLORED_HEARTS =
-            new ResourceLocation("colorhearts", "textures/gui/newhearts.png");
+        new ResourceLocation("ColoredHearts", "textures/gui/newhearts.png");
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
@@ -104,7 +104,7 @@ public class HealthBarRenderer extends Gui {
 
         // Health values
         final IAttributeInstance attrMax = mc.thePlayer.getEntityAttribute(
-                SharedMonsterAttributes.maxHealth);
+            SharedMonsterAttributes.maxHealth);
         final int health     = MathHelper.ceiling_float_int(mc.thePlayer.getHealth());
         final int healthLast = MathHelper.ceiling_float_int(mc.thePlayer.prevHealth);
         final float healthMax = Math.min(20F, (float) attrMax.getAttributeValue());
@@ -206,8 +206,8 @@ public class HealthBarRenderer extends Gui {
 
                     if ((layer + 1) * 20 + j * 2 + 21 >= health) {
                         drawColoredHeart(xBase + 8 * j, yBase + y,
-                                textureCol, coloredHeartsY,
-                                health, overlayCount, j, false);
+                            textureCol, coloredHeartsY,
+                            health, overlayCount, j, false);
                     }
                 }
 
@@ -218,8 +218,8 @@ public class HealthBarRenderer extends Gui {
                     if (heartsInLayer == regenBounceIndex)  y -= 2;
 
                     drawColoredHeart(xBase + 8 * heartsInLayer, yBase + y,
-                            textureCol, coloredHeartsY,
-                            health, overlayCount, heartsInLayer, true);
+                        textureCol, coloredHeartsY,
+                        health, overlayCount, heartsInLayer, true);
                 }
             }
 
@@ -243,7 +243,7 @@ public class HealthBarRenderer extends Gui {
     // Helper — draws one full or half colored heart, handling the >240 HP glow
     // =========================================================================
     private void drawColoredHeart(int x, int y, int textureCol, int textureRow,
-                                   int health, int overlayCount, int heartIndex, boolean half) {
+                                  int health, int overlayCount, int heartIndex, boolean half) {
         final int u = half ? 9 + 18 * textureCol : 18 * textureCol;
 
         if (health <= 240) {

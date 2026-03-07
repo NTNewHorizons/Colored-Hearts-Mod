@@ -1,4 +1,4 @@
-package com.ntnh.colorhearts;
+package com.ntnh.coloredhearts;
 
 import net.minecraftforge.common.MinecraftForge;
 

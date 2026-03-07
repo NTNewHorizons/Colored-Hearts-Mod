@@ -6,7 +6,7 @@
 		"description": "A mod that adds new hearts.",
 		"version": "${modVersion}",
 		"mcversion": "${minecraftVersion}",
-		"url": "https://github.com/Nuclear-Tech-New-Horizons/Colored-Hearts-Mod",
+		"url": "https://github.com/NTNewHorizons/Colored-Hearts-Mod",
 		"updateUrl": "",
 		"authorList": ["Bufka2011"],
 		"credits": "",

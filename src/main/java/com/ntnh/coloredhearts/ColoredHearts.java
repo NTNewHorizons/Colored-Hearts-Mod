@@ -1,4 +1,4 @@
-package com.ntnh.colorhearts;
+package com.ntnh.coloredhearts;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,16 +11,16 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 
 @Mod(
-    modid = colorhearts.MODID,
+    modid = ColoredHearts.MODID,
     version = Tags.VERSION,
     name = "Colored Hearts Mod",
     acceptedMinecraftVersions = "[1.7.10]")
-public class colorhearts {
+public class ColoredHearts {
 
-    public static final String MODID = "colorhearts";
+    public static final String MODID = "ColoredHearts";
     public static final Logger LOG = LogManager.getLogger(MODID);
 
-    @SidedProxy(clientSide = "com.ntnh.colorhearts.ClientProxy", serverSide = "com.ntnh.colorhearts.CommonProxy")
+    @SidedProxy(clientSide = "com.ntnh.ColoredHearts.ClientProxy", serverSide = "com.ntnh.ColoredHearts.CommonProxy")
     public static CommonProxy proxy;
 
     @Mod.EventHandler
