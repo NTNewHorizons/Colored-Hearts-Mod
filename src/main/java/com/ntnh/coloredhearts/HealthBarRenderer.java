@@ -24,7 +24,6 @@ import com.hbm.items.armor.ArmorHEV;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
 
 public class HealthBarRenderer extends Gui {
 
@@ -40,7 +39,7 @@ public class HealthBarRenderer extends Gui {
     // Resources
     // -------------------------------------------------------------------------
     private static final ResourceLocation COLORED_HEARTS = new ResourceLocation(
-        "ColoredHearts",
+        "coloredhearts",
         "textures/gui/newhearts.png");
 
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -50,16 +49,6 @@ public class HealthBarRenderer extends Gui {
     // -------------------------------------------------------------------------
     private final Random rand = new Random();
     private int updateCounter = 0;
-
-    // =========================================================================
-    // Tick handler — keeps updateCounter in sync with game ticks
-    // =========================================================================
-    @SubscribeEvent
-    public void onTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.START && !mc.isGamePaused()) {
-            updateCounter++;
-        }
-    }
 
     // =========================================================================
     // Compatibility helpers
@@ -81,6 +70,7 @@ public class HealthBarRenderer extends Gui {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void renderHealthbar(RenderGameOverlayEvent.Pre event) {
         if (event.type != HEALTH) return;
+        updateCounter++;
 
         // --- Mod compatibility bailouts ---
         if (isRpghudLoaded) return;
